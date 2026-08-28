@@ -3,7 +3,13 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
 function getUserModel() {
-  return (prisma as any).user || (prisma as any).User || (prisma as any).users
+  if (!prisma) return null
+  // Doğrudan tüm property'ler içinde findUnique metoduna sahip olan modeli bulur
+  const modelKey = Object.keys(prisma).find((key) => {
+    const val = (prisma as any)[key]
+    return val && typeof val.findUnique === "function" && !key.startsWith("_")
+  })
+  return modelKey ? (prisma as any)[modelKey] : (prisma as any).user || (prisma as any).User || (prisma as any).users
 }
 
 function getUserWithoutPassword(user: any) {
@@ -36,7 +42,6 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = email.toLowerCase().trim()
 
-      // Kullanıcı var mı kontrolü
       const existingUser = await userModel.findUnique({
         where: { email: normalizedEmail },
       })
@@ -45,10 +50,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Bu e-posta adresi zaten kayıtlı." }, { status: 400 })
       }
 
-      // Şifre hashleme
       const passwordHash = await bcrypt.hash(password, 12)
 
-      // Veritabanına yeni kullanıcı ekleme
       const newUser = await userModel.create({
         data: {
           email: normalizedEmail,
