@@ -7,9 +7,20 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  meals     Meal[]
+  waterLogs WaterLog[]
+}
+
 model Meal {
   id        String   @id @default(uuid())
   userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   mealType  String
   calories  Int
@@ -25,6 +36,7 @@ model Meal {
 model WaterLog {
   id        String   @id @default(uuid())
   userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date      String
   amountMl  Int
   updatedAt DateTime @updatedAt
