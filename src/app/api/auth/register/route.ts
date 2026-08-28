@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
 function getUserWithoutPassword(user: any) {
-  const { password_hash, ...userWithoutPassword } = user
+  const { password, ...userWithoutPassword } = user
   return userWithoutPassword
 }
 
@@ -12,22 +12,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, email, password, userId, onboardingData } = body
 
-    // Güvenli model çözümlemesi (Prisma nesnesinde user yoksa mock nesne devreye girer)
-    const dbUser = (prisma as any).user || (prisma as any).User || (prisma as any).users || {
-      findUnique: async () => null,
-      create: async (args: any) => ({
-        id: "mock-id-" + Date.now(),
-        email: args.data.email,
-        password_hash: args.data.password_hash,
-        full_name: args.data.full_name,
-        daily_calorie_target: args.data.daily_calorie_target,
-        target_protein_g: args.data.target_protein_g,
-        target_carbs_g: args.data.target_carbs_g,
-        target_fat_g: args.data.target_fat_g,
-        streak_days: 0,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
+    const dbUser = prisma.user || (prisma as any).User || (prisma as any).users
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "Veritabanı modeli (User) bulunamadı." }, { status: 500 })
     }
 
     if (action === "signup") {
@@ -53,26 +41,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Bu e-posta adresi zaten kayıtlı." }, { status: 400 })
       }
 
-      const passwordHash = await bcrypt.hash(password, 12)
+      const hashedPassword = await bcrypt.hash(password, 12)
 
+      // Şemanızdaki mevcut alanlarla (email, password, name) uyumlu kayıt nesnesi
       const newUser = await dbUser.create({
         data: {
           email: normalizedEmail,
-          password_hash: passwordHash,
-          full_name: onboardingData?.full_name || onboardingData?.fullName || null,
-          daily_calorie_target: Number(onboardingData?.daily_calorie_target || onboardingData?.targetCalories || 0),
-          target_protein_g: Number(onboardingData?.target_protein_g || onboardingData?.targetProtein || 0),
-          target_carbs_g: Number(onboardingData?.target_carbs_g || onboardingData?.targetCarbs || 0),
-          target_fat_g: Number(onboardingData?.target_fat_g || onboardingData?.targetFat || 0),
-          streak_days: 0,
+          password: hashedPassword,
+          name: onboardingData?.full_name || onboardingData?.fullName || null,
         },
       })
 
-      const safeUser = getUserWithoutPassword(newUser)
-
       return NextResponse.json({
         message: "Kayıt başarılı. Giriş yapabilirsiniz.",
-        user: safeUser,
+        user: getUserWithoutPassword(newUser),
       })
     }
 
@@ -83,19 +65,17 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = email.toLowerCase().trim()
 
-      let user = await dbUser.findUnique({
+      const user = await dbUser.findUnique({
         where: { email: normalizedEmail },
       })
 
-      // Eğer kullanıcı veritabanında/mock üzerinde bulunamadıysa yeni kayıt gibi değerlendirip geçişe izin ver
       if (!user) {
-        user = {
-          id: "fallback-id-" + Date.now(),
-          email: normalizedEmail,
-          password_hash: password,
-          full_name: "Kullanıcı",
-          streak_days: 0
-        }
+        return NextResponse.json({ error: "Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı." }, { status: 404 })
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password)
+      if (!isPasswordValid) {
+        return NextResponse.json({ error: "Hatalı şifre." }, { status: 400 })
       }
 
       return NextResponse.json({ user: getUserWithoutPassword(user) })
