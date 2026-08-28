@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
+function getUserModel() {
+  return (prisma as any).user || (prisma as any).User || (prisma as any).users
+}
+
 function getUserWithoutPassword(user: any) {
   const { password_hash, ...userWithoutPassword } = user
   return userWithoutPassword
@@ -11,6 +15,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { action, email, password, userId, onboardingData } = body
+    const userModel = getUserModel()
+
+    if (!userModel) {
+      return NextResponse.json({ error: "Veritabanı modeli bulunamadı" }, { status: 500 })
+    }
 
     if (action === "signup") {
       if (!email || !password) {
@@ -28,7 +37,7 @@ export async function POST(request: NextRequest) {
       const normalizedEmail = email.toLowerCase().trim()
 
       // Kullanıcı var mı kontrolü
-      const existingUser = await (prisma as any).user.findUnique({
+      const existingUser = await userModel.findUnique({
         where: { email: normalizedEmail },
       })
 
@@ -40,7 +49,7 @@ export async function POST(request: NextRequest) {
       const passwordHash = await bcrypt.hash(password, 12)
 
       // Veritabanına yeni kullanıcı ekleme
-      const newUser = await (prisma as any).user.create({
+      const newUser = await userModel.create({
         data: {
           email: normalizedEmail,
           password_hash: passwordHash,
@@ -68,7 +77,7 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = email.toLowerCase().trim()
 
-      const user = await (prisma as any).user.findUnique({
+      const user = await userModel.findUnique({
         where: { email: normalizedEmail },
       })
 
@@ -89,7 +98,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Kullanıcı ID gerekli" }, { status: 400 })
       }
 
-      const user = await (prisma as any).user.findUnique({
+      const user = await userModel.findUnique({
         where: { id: userId },
       })
 
