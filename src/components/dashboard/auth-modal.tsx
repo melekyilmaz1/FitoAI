@@ -114,7 +114,18 @@ export function AuthModal({
         }
 
         saveUserToDb(cleanEmail, password)
-        setStatus("signup-success")
+
+        // Kayıt olduktan sonra otomatik oturum aç ve custom_user'ı kaydet
+        const loggedUser = data.user || { id: "user_" + Date.now(), email: cleanEmail }
+        localStorage.setItem("custom_user", JSON.stringify(loggedUser))
+        window.dispatchEvent(new Event("auth-change"))
+
+        setStatus("success")
+        setTimeout(() => {
+          onClose()
+          onAuthSuccess()
+          setStatus("idle")
+        }, 500)
         return
       }
 
@@ -254,7 +265,7 @@ export function AuthModal({
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full h-12 pl-12 pr-4 rounded-xl border border-white/10 text-white placeholder:text-slate-500 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          className="w-full h-12 pl-12 pr-4 rounded-xl border border-white/10 text-white placeholder:text-slate-505 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
                           placeholder="E-posta"
                         />
                       </div>
