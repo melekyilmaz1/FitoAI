@@ -2,43 +2,83 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "motion/react"
-import { X, Mail, Lock, CheckCircle2, Loader2, User } from "lucide-react"
+import {
+  X,
+  Mail,
+  Lock,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Eye,
+  EyeOff,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (email: string) => Promise<{ error: Error | null }>
+  onAuthSuccess: () => void
+  initialMode?: "signin" | "signup"
+  showTabs?: boolean
 }
 
-export function AuthModal({ isOpen, onClose, onSubmit }: AuthModalProps) {
+export function AuthModal({
+  isOpen,
+  onClose,
+  onAuthSuccess,
+  initialMode = "signin",
+  showTabs = false,
+}: AuthModalProps) {
+  const [isSignUp, setIsSignUp] = useState(initialMode === "signup")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isSignUp, setIsSignUp] = useState(true)
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [showPassword, setShowPassword] = useState(false)
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error" | "signup-success">("idle")
   const [errorMessage, setErrorMessage] = useState("")
   const emailRef = useRef<HTMLInputElement>(null)
   const reducedMotion = useReducedMotion()
 
   useEffect(() => {
     if (isOpen) {
+      setIsSignUp(initialMode === "signup")
       setStatus("idle")
       setErrorMessage("")
       setEmail("")
       setPassword("")
+      setShowPassword(false)
       setTimeout(() => emailRef.current?.focus(), 100)
     }
-  }, [isOpen])
+  }, [isOpen, initialMode])
+
+  // Yerel veri deposu yardımcıları
+  const getStoredUsers = () => {
+    try {
+      const users = localStorage.getItem("registered_users_db")
+      return users ? JSON.parse(users) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  const saveUserToDb = (userEmail: string, userPass: string) => {
+    const users = getStoredUsers()
+    users[userEmail.toLowerCase()] = userPass
+    localStorage.setItem("registered_users_db", JSON.stringify(users))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !email.includes("@")) {
-      setErrorMessage("Geçerli bir e-posta adresi girin")
+    const cleanEmail = email.trim().toLowerCase()
+
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setErrorMessage("Geçerli bir e-posta adresi girin.")
+      setStatus("error")
       return
     }
 
-    if (isSignUp && password.length < 6) {
-      setErrorMessage("Şifre en az 6 karakter olmalı")
+    if (password.length < 6) {
+      setErrorMessage("Şifre en az 6 karakter olmalı.")
+      setStatus("error")
       return
     }
 
@@ -46,186 +86,221 @@ export function AuthModal({ isOpen, onClose, onSubmit }: AuthModalProps) {
     setErrorMessage("")
 
     try {
-      const result = await onSubmit(email)
-      if (result.error) {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: isSignUp ? "signup" : "signin",
+          email: cleanEmail,
+          password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || data.error) {
+        setErrorMessage(data.error || "İşlem sırasında bir hata oluştu.")
         setStatus("error")
-        setErrorMessage(result.error.message)
         return
       }
+
+      const registeredUsers = getStoredUsers()
+
+      if (isSignUp) {
+        if (registeredUsers[cleanEmail]) {
+          setErrorMessage("Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.")
+          setStatus("error")
+          return
+        }
+
+        saveUserToDb(cleanEmail, password)
+        setStatus("signup-success")
+        return
+      }
+
+      if (!registeredUsers[cleanEmail]) {
+        setErrorMessage("Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.")
+        setStatus("error")
+        return
+      }
+
+      if (registeredUsers[cleanEmail] !== password) {
+        setErrorMessage("E-posta adresi veya şifre yanlış.")
+        setStatus("error")
+        return
+      }
+
+      const loggedUser = data.user || { id: "user_1", email: cleanEmail }
+      localStorage.setItem("custom_user", JSON.stringify(loggedUser))
+      
+      // Tüm uygulamaya oturumun değiştiğini duyur
+      window.dispatchEvent(new Event("auth-change"))
+
       setStatus("success")
       setTimeout(() => {
         onClose()
+        onAuthSuccess()
         setStatus("idle")
-      }, 1500)
-    } catch (err) {
+      }, 500)
+
+    } catch (err: any) {
+      setErrorMessage(err.message || "Bir hata oluştu. Lütfen tekrar deneyin.")
       setStatus("error")
-      setErrorMessage("Bir hata oluştu. Lütfen tekrar deneyin.")
     }
+  }
+
+  const handleSwitchToLogin = () => {
+    setIsSignUp(false)
+    setStatus("idle")
+    setErrorMessage("")
+    setTimeout(() => emailRef.current?.focus(), 100)
   }
 
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reducedMotion ? 0 : 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
             onClick={onClose}
-            aria-hidden="true"
           />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{
-              duration: reducedMotion ? 0 : 0.3,
-              ease: [0.25, 0.1, 0.25, 1],
-            }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-title"
           >
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: reducedMotion ? 0 : 0.1, duration: 0.3 }}
-              className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl border border-slate-100"
-            >
-              {/* Close button */}
-              <motion.button
+            <motion.div className="relative w-full max-w-md rounded-3xl bg-[#1B1D22] p-8 shadow-2xl border border-white/10 text-white">
+              <button
                 onClick={onClose}
-                whileHover={reducedMotion ? undefined : { scale: 1.1, rotate: 90 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.9 }}
-                className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                aria-label="Kapat"
+                className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
-              </motion.button>
+              </button>
 
-              {/* Content */}
               <AnimatePresence mode="wait">
-                {status === "idle" || status === "loading" || status === "error" ? (
-                  <form onSubmit={handleSubmit} key="form">
-                    <div className="text-center mb-8">
-                      <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 mb-4">
-                        <Mail className="h-7 w-7" />
-                      </div>
-                      <h2 id="modal-title" className="text-2xl font-bold text-slate-900">
-                        Planına Erişim
+                {status === "signup-success" ? (
+                  <div key="signup-success" className="text-center py-6">
+                    <CheckCircle2 className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-bold text-white mb-1">Hesabınız Oluşturuldu!</h3>
+                    <p className="text-sm text-slate-400 mb-6">Kayıt olduğunuz bilgilerle hemen giriş yapabilirsiniz.</p>
+                    <motion.button
+                      type="button"
+                      onClick={handleSwitchToLogin}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full h-12 rounded-xl bg-amber-500 text-slate-950 font-semibold hover:bg-amber-400 transition-colors cursor-pointer"
+                    >
+                      Giriş Yap Sekmesine Geç
+                    </motion.button>
+                  </div>
+                ) : status === "success" ? (
+                  <div key="success" className="text-center py-8">
+                    <CheckCircle2 className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-white">Giriş Başarılı!</h3>
+                  </div>
+                ) : (
+                  <form key="form" onSubmit={handleSubmit}>
+                    <div className="text-center mb-6">
+                      <h2 className="text-2xl font-bold text-white">
+                        {isSignUp ? "Hesap Oluştur" : "Giriş Yap"}
                       </h2>
-                      <p className="mt-2 text-slate-600">
-                        E-posta adresini gir, özel antrenman ve beslenme planına hemen ulaş.
-                      </p>
                     </div>
 
-                    <div className="mb-6">
-                      <label htmlFor="email" className="sr-only">
-                        E-posta adresi
-                      </label>
-                      <div className="relative">
-                        <Mail
+                    {/* Sadece showTabs={true} geçilirse Giriş Yap / Kayıt Ol sekmelerini gösterir */}
+                    {showTabs && (
+                      <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-2xl border border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSignUp(false)
+                            setStatus("idle")
+                            setErrorMessage("")
+                          }}
                           className={cn(
-                            "absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5",
-                            status === "error" ? "text-red-500" : "text-slate-400"
+                            "flex-1 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer",
+                            !isSignUp ? "bg-amber-500 text-slate-950 font-semibold" : "text-slate-400 hover:text-white"
                           )}
-                          aria-hidden="true"
-                        />
+                        >
+                          Giriş Yap
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSignUp(true)
+                            setStatus("idle")
+                            setErrorMessage("")
+                          }}
+                          className={cn(
+                            "flex-1 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer",
+                            isSignUp ? "bg-amber-500 text-slate-950 font-semibold" : "text-slate-400 hover:text-white"
+                          )}
+                        >
+                          Kayıt Ol
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                         <input
                           ref={emailRef}
-                          id="email"
                           type="email"
-                          autoComplete="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          disabled={status === "loading"}
-                          className={cn(
-                            "w-full h-12 pl-12 pr-4 rounded-xl border text-slate-900 placeholder-slate-400 transition-all duration-300",
-                            "focus:outline-none focus:ring-2 focus:ring-emerald-500/20",
-                            status === "error"
-                              ? "border-red-500 bg-red-50 focus:border-red-500"
-                              : "border-slate-200 hover:border-slate-300 focus:border-emerald-500"
-                          )}
-                          placeholder="ornek@email.com"
-                          aria-invalid={status === "error"}
-                          aria-describedby={status === "error" ? "email-error" : undefined}
+                          className="w-full h-12 pl-12 pr-4 rounded-xl border border-white/10 text-white placeholder:text-slate-500 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          placeholder="E-posta"
                         />
                       </div>
-                      {status === "error" && (
-                        <motion.p
-                          id="email-error"
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 text-sm text-red-500 flex items-center gap-1"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          {errorMessage}
-                        </motion.p>
-                      )}
                     </div>
 
-                    <motion.button
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full h-12 pl-12 pr-12 rounded-xl border border-white/10 text-white placeholder:text-slate-500 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          placeholder="Şifre"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {status === "error" && (
+                      <div className="flex items-center gap-2 text-sm text-red-400 mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span>{errorMessage}</span>
+                      </div>
+                    )}
+
+                    <button
                       type="submit"
-                      disabled={status === "loading" || !email}
-                      whileHover={reducedMotion || status === "loading" ? undefined : { scale: 1.02 }}
-                      whileTap={reducedMotion || status === "loading" ? undefined : { scale: 0.98 }}
-                      className={cn(
-                        "w-full h-12 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2",
-                        status === "loading"
-                          ? "bg-emerald-400 cursor-wait"
-                          : "bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40"
-                      )}
+                      disabled={status === "loading"}
+                      className="w-full h-12 rounded-xl bg-amber-500 text-slate-950 font-semibold hover:bg-amber-400 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {status === "loading" ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Hazırlanıyor...
-                        </>
+                        <Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-950" />
+                      ) : isSignUp ? (
+                        "Kayıt Ol"
                       ) : (
-                        "Planımı Başlat →"
+                        "Giriş Yap"
                       )}
-                    </motion.button>
-
-                    <p className="mt-4 text-center text-xs text-slate-500">
-                      Kayıt olarak{" "}
-                      <a href="#" className="underline hover:text-emerald-600">
-                        Kullanım Şartları
-                      </a>{" "}
-                      ve{" "}
-                      <a href="#" className="underline hover:text-emerald-600">
-                        Gizlilik Politikası
-                      </a>{" "}
-                      kabul etmiş olursunuz.
-                    </p>
+                    </button>
                   </form>
-                ) : (
-                  // Success state
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-4"
-                  >
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white mb-4"
-                    >
-                      <CheckCircle2 className="h-8 w-8" strokeWidth={2.5} />
-                    </motion.div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Hazır! 🎉</h3>
-                    <p className="text-slate-600">
-                      Planın e-posta adresine gönderildi. Gelen kutunu kontrol et.
-                    </p>
-                  </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>

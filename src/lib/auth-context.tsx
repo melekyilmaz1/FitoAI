@@ -1,115 +1,172 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
-import { User, Session } from "@supabase/supabase-js"
-import { createClient } from "@/lib/supabase"
-import type { Profile } from "@/lib/types"
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react"
+import type { User } from "@/lib/types"
+import { calculateMetrics } from "@/lib/calculations"
+import type { FormData } from "@/components/onboarding/multi-step-form"
 
 interface AuthContextType {
   user: User | null
-  session: Session | null
-  profile: Profile | null
   loading: boolean
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
-  refreshProfile: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const STORAGE_KEY = "custom_user"
+const ONBOARDING_STORAGE_KEY = "fito_onboarding_data"
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createClient()
+  // Sync onboarding data to database after successful auth
+  const syncOnboardingData = async (userId: string) => {
+    const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY)
+    if (!stored) return
 
-  // Fetch user profile
-  const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single()
+      const formData = JSON.parse(stored) as FormData
+      const metrics = calculateMetrics(formData)
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error fetching profile:", error)
-      }
+      const response = await fetch("/api/onboarding/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, formData, metrics }),
+      })
 
-      if (data) {
-        setProfile(data as Profile)
+      if (response.ok) {
+        console.log("Onboarding data synced successfully")
+      } else {
+        console.warn("Onboarding sync failed:", await response.text())
       }
     } catch (err) {
-      console.error("Error fetching profile:", err)
+      console.error("Onboarding sync error:", err)
     }
   }
 
-  // Initialize auth state
-  useEffect(() => {
-    const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await fetchProfile(session.user.id)
+  // LocalStorage ve DB doğrulama fonksiyonu
+  const verifyAndSetUser = useCallback(async () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (!stored) {
+        setUser(null)
+        setLoading(false)
+        return
       }
 
-      setLoading(false)
-    }
+      const parsedUser = JSON.parse(stored)
+      const response = await fetch(`/api/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify", userId: parsedUser.id }),
+      })
 
-    initAuth()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await fetchProfile(session.user.id)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.user) {
+          setUser(data.user)
+        } else {
+          localStorage.removeItem(STORAGE_KEY)
+          setUser(null)
+        }
       } else {
-        setProfile(null)
+        // API offline veya erişilemiyorsa en azından cached user verisini tut
+        setUser(parsedUser)
       }
-
+    } catch (err) {
+      console.error("Auth verify error:", err)
+    } finally {
       setLoading(false)
-    })
-
-    return () => {
-      subscription.unsubscribe()
     }
   }, [])
 
+  // Event Listener'ları bağlayarak anlık UI senkronizasyonu sağlama
+  useEffect(() => {
+    verifyAndSetUser()
+
+    const handleAuthChange = () => {
+      verifyAndSetUser()
+    }
+
+    window.addEventListener("storage", handleAuthChange)
+    window.addEventListener("auth-change", handleAuthChange)
+
+    return () => {
+      window.removeEventListener("storage", handleAuthChange)
+      window.removeEventListener("auth-change", handleAuthChange)
+    }
+  }, [verifyAndSetUser])
+
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-    return { error: error ? new Error(error.message) : null }
-  }
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "signup", email, password }),
+      })
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { error: error ? new Error(error.message) : null }
-  }
+      const data = await response.json()
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
-  }
+      if (data.error) {
+        return { error: new Error(data.error) }
+      }
 
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.id)
+      if (data.user) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user))
+        setUser(data.user)
+        window.dispatchEvent(new Event("auth-change"))
+        await syncOnboardingData(data.user.id)
+      }
+
+      return { error: null }
+    } catch (err: any) {
+      return { error: new Error(err.message || "Kayıt olurken bir hata oluştu.") }
     }
   }
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "signin", email, password }),
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        return { error: new Error(data.error) }
+      }
+
+      if (data.user) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user))
+        setUser(data.user)
+        window.dispatchEvent(new Event("auth-change"))
+        await syncOnboardingData(data.user.id)
+      }
+
+      return { error: null }
+    } catch (err: any) {
+      return { error: new Error(err.message || "Giriş yapılırken bir hata oluştu.") }
+    }
+  }
+
+  const signOut = async () => {
+    localStorage.removeItem(STORAGE_KEY)
+    setUser(null)
+    window.dispatchEvent(new Event("auth-change"))
+  }
+
+  const refreshUser = async () => {
+    await verifyAndSetUser()
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

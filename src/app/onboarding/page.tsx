@@ -10,7 +10,7 @@ export default function OnboardingPage() {
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-emerald-400/10 blur-[200px] animate-pulse" />
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-[#D94A1D]/10 blur-[200px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-amber-400/10 blur-[200px] animate-pulse delay-1000" />
       </div>
 

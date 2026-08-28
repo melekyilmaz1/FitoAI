@@ -1,6 +1,5 @@
-export interface Profile {
+export interface User {
   id: string
-  user_id: string
   email: string
   full_name: string | null
   daily_calorie_target: number
@@ -24,6 +23,7 @@ export interface Meal {
   carbs_g: number
   fat_g: number
   image_url: string | null
+  date: string // YYYY-MM-DD format
   created_at: string
 }
 
@@ -43,4 +43,23 @@ export interface DailyNutritionSummary {
   total_carbs_g: number
   total_fat_g: number
   meal_count: number
+}
+
+export interface WaterTracking {
+  id: string
+  user_id: string
+  date: string // YYYY-MM-DD format
+  amount_ml: number
+  created_at: string
+  updated_at: string
+}
+
+export interface FormData {
+  gender: "male" | "female" | null
+  age: number | null
+  height: number | null
+  weight: number | null
+  targetWeight: number | null
+  activityLevel: number | null
+  goal: "lose" | "maintain" | "gain" | null
 }

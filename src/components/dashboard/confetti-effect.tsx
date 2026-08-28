@@ -9,7 +9,7 @@ interface ConfettiEffectProps {
 }
 
 export function ConfettiEffect({ trigger, onComplete }: ConfettiEffectProps) {
-  const animationFrameRef = useRef<number>()
+  const animationFrameRef = useRef<number | null>(null)
   const hasFiredRef = useRef(false)
 
   useEffect(() => {

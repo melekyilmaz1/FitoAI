@@ -2,7 +2,6 @@
 
 import React from "react"
 import { motion, useReducedMotion } from "motion/react"
-import { cn } from "@/lib/utils"
 
 interface MacroData {
   label: string
@@ -13,27 +12,27 @@ interface MacroData {
 }
 
 interface AnimatedMacroBarsProps {
-  macros: {
-    protein: { grams: number; calories: number; percentage: number }
-    carbs: { grams: number; calories: number; percentage: number }
-    fat: { grams: number; calories: number; percentage: number }
+  macros?: {
+    protein?: { grams: number; calories: number; percentage: number }
+    carbs?: { grams: number; calories: number; percentage: number }
+    fat?: { grams: number; calories: number; percentage: number }
   }
-  targetCalories: number
+  targetCalories?: number
 }
 
-const macroData: MacroData[] = [
-  { label: "Protein", value: 0, percentage: 0, color: "#10b981", bgColor: "#d1fae5" },
-  { label: "Karbonhidrat", value: 0, percentage: 0, color: "#f59e0b", bgColor: "#fef3c7" },
-  { label: "Yağ", value: 0, percentage: 0, color: "#ef4444", bgColor: "#fee2e2" },
+const macroDataDefaults: MacroData[] = [
+  { label: "Protein", value: 0, percentage: 0, color: "#10b981", bgColor: "#064e3b" },
+  { label: "Karbonhidrat", value: 0, percentage: 0, color: "#f59e0b", bgColor: "#78350f" },
+  { label: "Yağ", value: 0, percentage: 0, color: "#ef4444", bgColor: "#7f1d1d" },
 ]
 
-export function AnimatedMacroBars({ macros, targetCalories }: AnimatedMacroBarsProps) {
+export function AnimatedMacroBars({ macros }: AnimatedMacroBarsProps) {
   const reducedMotion = useReducedMotion()
 
   const data = [
-    { ...macroData[0], value: macros.protein.grams, percentage: macros.protein.percentage },
-    { ...macroData[1], value: macros.carbs.grams, percentage: macros.carbs.percentage },
-    { ...macroData[2], value: macros.fat.grams, percentage: macros.fat.percentage },
+    { ...macroDataDefaults[0], value: macros?.protein?.grams || 0, percentage: macros?.protein?.percentage || 0 },
+    { ...macroDataDefaults[1], value: macros?.carbs?.grams || 0, percentage: macros?.carbs?.percentage || 0 },
+    { ...macroDataDefaults[2], value: macros?.fat?.grams || 0, percentage: macros?.fat?.percentage || 0 },
   ]
 
   return (
@@ -55,25 +54,26 @@ export function AnimatedMacroBars({ macros, targetCalories }: AnimatedMacroBarsP
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: reducedMotion ? 0 : index * 0.1 + 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                transition={{
+                  delay: reducedMotion ? 0 : index * 0.1 + 0.3,
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                }}
                 className="h-3 w-3 rounded-full"
                 style={{ backgroundColor: macro.color }}
               />
-              <span className="text-sm font-medium text-slate-700">{macro.label}</span>
+              <span className="text-sm font-medium text-white">{macro.label}</span>
             </div>
-            <div className="flex items-center gap-3 text-right min-w-[100px]">
-              <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                {macro.value}g
-              </span>
-              <span className="text-sm text-slate-500">
-                {macro.percentage}%
-              </span>
+            <div className="flex items-center gap-3 text-right min-w-[100px] justify-end">
+              <span className="text-sm font-semibold text-white tabular-nums">{macro.value}g</span>
+              <span className="text-xs font-semibold text-white/50">{macro.percentage}%</span>
             </div>
           </div>
-          <div className="relative h-3 rounded-full overflow-hidden bg-slate-100">
+          <div className="relative h-2.5 rounded-full overflow-hidden bg-white/10">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${macro.percentage}%` }}
+              animate={{ width: `${Math.min(100, Math.max(0, macro.percentage))}%` }}
               transition={{
                 duration: reducedMotion ? 0 : 1.2,
                 delay: reducedMotion ? 0 : index * 0.1 + 0.2,
@@ -111,27 +111,27 @@ export function StatCard({ label, value, unit, icon, color, bgColor, delay = 0 }
         delay: reducedMotion ? 0 : delay,
         ease: [0.25, 0.1, 0.25, 1],
       }}
-      className="relative p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+      className="relative p-5 rounded-2xl bg-[#1B1D22] border border-white/10 shadow-lg overflow-hidden group hover:border-white/20 transition-all"
     >
-      <div 
-        className="absolute inset-0 bg-gradient-to-br opacity-5 pointer-events-none" 
-        style={{ backgroundColor: color }} 
+      <div
+        className="absolute inset-0 opacity-10 pointer-events-none transition-opacity group-hover:opacity-15"
+        style={{ backgroundColor: color }}
       />
-      <div className="relative flex items-center justify-between">
+      <div className="relative flex items-center justify-between z-10">
         <div>
-          <p className="text-sm font-medium text-slate-600">{label}</p>
+          <p className="text-xs font-semibold text-slate-400">{label}</p>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: reducedMotion ? 0 : delay + 0.2, duration: 0.4 }}
             className="mt-1 flex items-baseline gap-1"
           >
-            <span className="text-3xl font-bold text-slate-900 tabular-nums">{value}</span>
-            {unit && <span className="text-sm text-slate-500">{unit}</span>}
+            <span className="text-2xl font-black text-white tabular-nums">{value}</span>
+            {unit && <span className="text-xs font-medium text-slate-400">{unit}</span>}
           </motion.div>
         </div>
         <div
-          className="flex h-12 w-12 items-center justify-center rounded-xl"
+          className="flex h-11 w-11 items-center justify-center rounded-xl shrink-0"
           style={{ backgroundColor: bgColor }}
         >
           <span style={{ color }}>{icon}</span>
@@ -142,7 +142,7 @@ export function StatCard({ label, value, unit, icon, color, bgColor, delay = 0 }
 }
 
 interface WeightTimelineProps {
-  timeline: Array<{ week: number; weight: number; date: Date }>
+  timeline: Array<{ week: number; weight: number; date?: Date }>
   currentWeight: number
   targetWeight: number
 }
@@ -154,7 +154,7 @@ export function WeightTimeline({ timeline, currentWeight, targetWeight }: Weight
     return null
   }
 
-  const weights = timeline.map(t => t.weight)
+  const weights = [...timeline.map((t) => t.weight), targetWeight]
   const minWeight = Math.min(...weights) - 1
   const maxWeight = Math.max(...weights) + 1
   const weightRange = maxWeight - minWeight || 1
@@ -167,76 +167,101 @@ export function WeightTimeline({ timeline, currentWeight, targetWeight }: Weight
     return timeline.length > 1 ? (index / (timeline.length - 1)) * 100 : 50
   }
 
-  const pathPoints = timeline.map((t, i) => `${getX(i)}% ${getY(t.weight)}%`).join(" ")
-  const areaPath = `${pathPoints} ${getX(timeline.length - 1)}% 100% ${getX(0)}% 100%`
+  // Path SVG koordinatları üretme
+  const pathPoints = timeline
+    .map((t, i) => `${(getX(i) / 100) * 300},${(getY(t.weight) / 100) * 200}`)
+    .join(" L ")
+
+  const svgPath = pathPoints ? `M ${pathPoints}` : ""
 
   return (
-    <div className="relative h-64">
-      <div className="absolute inset-0" aria-hidden="true">
+    <div className="relative h-64 w-full bg-[#121316] p-4 rounded-2xl border border-white/5 overflow-hidden">
+      {/* Yatay Izgara Çizgileri */}
+      <div className="absolute inset-x-4 inset-y-4" aria-hidden="true">
         {[0, 25, 50, 75, 100].map((p) => (
           <div
             key={p}
-            className="absolute left-0 right-0 border-t border-slate-100"
+            className="absolute left-0 right-0 border-t border-white/5"
             style={{ top: `${p}%` }}
           />
         ))}
       </div>
 
+      {/* SVG Grafik Çizgisi */}
+      <svg
+        className="absolute inset-x-4 inset-y-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] overflow-visible pointer-events-none"
+        viewBox="0 0 300 200"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="weight-gradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+
+        {svgPath && (
+          <motion.path
+            d={svgPath}
+            fill="none"
+            stroke="#10b981"
+            strokeWidth="3"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 1 }}
+            transition={{ duration: reducedMotion ? 0 : 1.5, ease: "easeInOut" }}
+          />
+        )}
+      </svg>
+
+      {/* Veri Noktaları */}
       {timeline.map((t, i) => (
         <motion.div
           key={t.week}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{
-            delay: reducedMotion ? 0 : 0.8 + i * 0.05,
+            delay: reducedMotion ? 0 : 0.6 + i * 0.08,
             type: "spring",
             stiffness: 300,
             damping: 20,
           }}
-          className="absolute group"
+          className="absolute group z-10"
           style={{
             left: `calc(${getX(i)}% - 6px)`,
             top: `calc(${getY(t.weight)}% - 6px)`,
           }}
         >
-          <div className="relative z-10 flex h-3 w-3 items-center justify-center">
-            <div className="h-3 w-3 rounded-full bg-emerald-500 border-2 border-white shadow-lg" />
+          <div className="relative flex h-3 w-3 items-center justify-center cursor-pointer">
+            <div className="h-3 w-3 rounded-full bg-emerald-500 border-2 border-[#121316] shadow-lg" />
             <motion.div
-              animate={{ scale: [1, 1.5, 1], opacity: [0.6, 0, 0.6] }}
+              animate={{ scale: [1, 1.6, 1], opacity: [0.6, 0, 0.6] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute h-3 w-3 rounded-full border-2 border-emerald-500" 
+              className="absolute h-3 w-3 rounded-full border-2 border-emerald-500"
             />
           </div>
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-slate-900 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 border border-white/10 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl">
             Hafta {t.week}: {t.weight} kg
           </div>
         </motion.div>
       ))}
 
+      {/* Hedef Kilo Çizgisi */}
       {targetWeight !== currentWeight && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: reducedMotion ? 0 : 1.2 }}
-          className="absolute left-0 right-0 border-t-2 border-dashed border-emerald-300"
+          transition={{ delay: reducedMotion ? 0 : 1 }}
+          className="absolute left-4 right-4 border-t-2 border-dashed border-emerald-400/50 z-0"
           style={{
             top: `${getY(targetWeight)}%`,
           }}
         >
-          <div className="absolute right-0 top-[-10px] px-2 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded">
+          <div className="absolute right-0 top-[-10px] px-2 py-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 rounded">
             Hedef: {targetWeight} kg
           </div>
         </motion.div>
       )}
-
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
-        <defs>
-          <linearGradient id="weight-gradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-      </svg>
     </div>
   )
 }
@@ -247,38 +272,27 @@ interface WeeklyProgressProps {
 
 export function WeeklyProgress({ weeksToGoal }: WeeklyProgressProps) {
   const reducedMotion = useReducedMotion()
-  const displayWeeks = Math.max(1, Math.min(weeksToGoal, 12))
+  const displayWeeks = Math.max(1, Math.min(weeksToGoal || 1, 12))
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-slate-600">Bugün</span>
-        <span className="text-slate-600">Hafta {displayWeeks}</span>
+      <div className="flex items-center justify-between text-xs font-semibold">
+        <span className="text-slate-400">Bugün</span>
+        <span className="text-emerald-400">Hafta {displayWeeks}</span>
       </div>
-      <div className="relative h-8 rounded-full bg-slate-100 overflow-hidden">
-        {[...Array(displayWeeks)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ width: 0 }}
-            animate={{ width: `${100 / displayWeeks}%` }}
-            transition={{
-              duration: reducedMotion ? 0 : 0.3,
-              delay: reducedMotion ? 0 : 0.8 + i * 0.08,
-              ease: [0.25, 0.1, 0.25, 1],
-            }}
-            className="absolute inset-y-0 bg-gradient-to-r from-emerald-400 to-emerald-600"
-            style={{ left: `${(i / displayWeeks) * 100}%` }}
-          />
-        ))}
+      <div className="relative h-6 rounded-full bg-[#121316] border border-white/5 overflow-hidden p-0.5">
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: reducedMotion ? 0 : 1.5, type: "spring", stiffness: 300, damping: 20 }}
-          className="absolute top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-white border-2 border-emerald-500 shadow"
-          style={{ left: "0%" }}
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{
+            duration: reducedMotion ? 0 : 1.2,
+            delay: reducedMotion ? 0 : 0.3,
+            ease: [0.25, 0.1, 0.25, 1],
+          }}
+          className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
         />
       </div>
-      <div className="flex justify-between text-xs text-slate-400">
+      <div className="flex justify-between text-[11px] font-medium text-slate-500">
         <span>Başlangıç</span>
         <span>{displayWeeks} hafta sonra hedef</span>
       </div>

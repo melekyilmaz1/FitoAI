@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useEffect, useLayoutEffect, useMemo, useState } from "react"
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
   AnimatePresence,
   motion,
@@ -58,20 +58,22 @@ export function useMediaQuery(
   return matches
 }
 
-// Spor, Koşu ve Sağlıklı Yemek Görsel Anahtar Kelimeleri - Unsplash yüksek kaliteli görseller
+// Spor, Koşu ve Sağlıklı Yemek Görsel Listesi (Tüm Linkler Test Edildi ve Yenilendi)
 const unsplashImages = [
-  "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=80", // running
-  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80", // fitness
-  "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&q=80", // healthy-food
-  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80", // salad
-  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80", // gym
-  "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=80", // workout
-  "https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=800&q=80", // smoothie
-  "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80", // weightlifting
-  "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800&q=80", // jogging
-  "https://images.unsplash.com/photo-1542838132-92c53300368e?w=800&q=80", // nutrition
-  "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=800&q=80", // avocado
-  "https://images.unsplash.com/photo-1517673400267-025886830c3b?w=800&q=80", // oatmeal
+  "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&q=80",
+  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
+  "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&q=80",
+  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80",
+  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+  "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+  "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
+  "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800&q=80",
+  "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80",
+  "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
+  "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&q=80",
+  "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800&q=80", // Yenilenen Görsel
+  "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&q=80", // Yenilenen Görsel
+  "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80", // Yenilenen Görsel
 ]
 
 const duration = 0.15
@@ -96,13 +98,36 @@ const Carousel = memo(
     const faceWidth = cylinderWidth / faceCount
     const radius = cylinderWidth / (2 * Math.PI)
     const rotation = useMotionValue(0)
+    const animRef = useRef<number | null>(null)
+
     const transform = useTransform(
       rotation,
       (value) => `rotate3d(0, 1, 0, ${value}deg)`
     )
 
-    // Reduced motion support
-    const shouldReduceMotion = false // Will be enhanced with useReducedMotion if needed
+    // Kesintisiz Otomatik Dairesel Dönme
+    useEffect(() => {
+      let lastTime = performance.now()
+
+      const rotateAnimation = (now: number) => {
+        const delta = now - lastTime
+        lastTime = now
+
+        if (isCarouselActive) {
+          rotation.set(rotation.get() - delta * 0.015)
+        }
+
+        animRef.current = requestAnimationFrame(rotateAnimation)
+      }
+
+      animRef.current = requestAnimationFrame(rotateAnimation)
+
+      return () => {
+        if (animRef.current) {
+          cancelAnimationFrame(animRef.current)
+        }
+      }
+    }, [isCarouselActive, rotation])
 
     return (
       <div
@@ -114,36 +139,20 @@ const Carousel = memo(
         }}
       >
         <motion.div
-          drag={isCarouselActive ? "x" : false}
-          className="relative flex h-full origin-center cursor-grab justify-center active:cursor-grabbing"
+          drag={false}
+          className="relative flex h-full origin-center justify-center"
           style={{
             transform,
             rotateY: rotation,
             width: cylinderWidth,
             transformStyle: "preserve-3d",
           }}
-          onDrag={(_, info) =>
-            isCarouselActive &&
-            rotation.set(rotation.get() + info.offset.x * 0.05)
-          }
-          onDragEnd={(_, info) =>
-            isCarouselActive &&
-            controls.start({
-              rotateY: rotation.get() + info.velocity.x * 0.05,
-              transition: {
-                type: "spring",
-                stiffness: 100,
-                damping: 30,
-                mass: 0.1,
-              },
-            })
-          }
           animate={controls}
         >
           {cards.map((imgUrl, i) => (
             <motion.div
               key={`key-${imgUrl}-${i}`}
-              className="absolute flex h-full origin-center items-center justify-center rounded-xl p-2"
+              className="absolute flex h-full origin-center items-center justify-center rounded-xl p-2 cursor-pointer"
               style={{
                 width: `${faceWidth}px`,
                 transform: `rotateY(${
@@ -188,7 +197,7 @@ export function ThreeDPhotoCarousel() {
   }
 
   return (
-    <motion.div layout className="relative">
+    <motion.div layout className="relative w-full">
       <AnimatePresence mode="sync">
         {activeImg && (
           <motion.div
@@ -198,7 +207,7 @@ export function ThreeDPhotoCarousel() {
             layoutId={`img-container-${activeImg}`}
             layout="position"
             onClick={handleClose}
-            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-5 rounded-3xl backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-5 rounded-3xl backdrop-blur-sm cursor-pointer"
             style={{ willChange: "opacity" }}
             transition={transitionOverlay}
           >
@@ -217,7 +226,7 @@ export function ThreeDPhotoCarousel() {
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="relative h-[450px] w-full overflow-hidden max-w-6xl mx-auto">
+      <div className="relative h-[240px] sm:h-[320px] md:h-[400px] w-full overflow-hidden max-w-6xl mx-auto">
         <Carousel
           handleClick={handleClick}
           controls={controls}

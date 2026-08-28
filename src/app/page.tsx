@@ -1,201 +1,204 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { motion } from "motion/react"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, User } from "lucide-react"
 import { ThreeDPhotoCarousel } from "@/components/ui/3d-carousel"
+import { AuthModal } from "@/components/dashboard/auth-modal"
 
 export default function HomePage() {
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
+  // Spline Web Component Script'ini yükleme
+  useEffect(() => {
+    const script = document.createElement("script")
+    script.src = "https://unpkg.com/@splinetool/viewer@1.9.72/build/spline-viewer.js"
+    script.type = "module"
+    document.head.appendChild(script)
+
+    return () => {
+      document.head.removeChild(script)
+    }
+  }, [])
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-emerald-400/10 blur-[200px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-amber-400/10 blur-[200px] animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-emerald-400/5 blur-[200px] animate-pulse delay-2000" />
+    <main className="h-screen max-h-screen overflow-hidden bg-black text-white relative flex flex-col justify-between py-4 px-4 sm:px-6 font-sora antialiased selection:bg-[#D94A1D] selection:text-white">
+      {/* Sağ Taraftaki Kiremit / Turuncu Sızıntı Efekti (Glow) */}
+      <div 
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-[450px] h-[550px] rounded-full blur-[140px] pointer-events-none opacity-60 z-[1]"
+        style={{
+          background: "radial-gradient(circle, rgba(217, 74, 29, 0.85) 0%, rgba(217, 74, 29, 0) 70%)"
+        }}
+      />
+
+      {/* 3D Spline Arka Planı (Kareli Doku Belirgin & Siyah Tonlama) */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        {/* @ts-ignore - spline-viewer custom element */}
+        <spline-viewer
+          url="https://prod.spline.design/Slk6b8kz3LRlKiyk/scene.splinecode"
+          style={{
+            width: "100%",
+            height: "100%",
+            filter: "grayscale(100%) brightness(0.65) contrast(1.2)", // Yeşil ton sıfırlandı, 3D küpler görünür kılındı
+          }}
+        />
       </div>
 
-      {/* Floating decorative elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 left-10 w-2 h-2 bg-emerald-400/30 rounded-full animate-bounce delay-0" />
-        <div className="absolute top-40 right-20 w-1 h-1 bg-amber-400/40 rounded-full animate-bounce delay-500" />
-        <div className="absolute bottom-40 left-20 w-1.5 h-1.5 bg-emerald-400/30 rounded-full animate-bounce delay-1000" />
-        <div className="absolute bottom-20 right-10 w-2 h-2 bg-amber-400/30 rounded-full animate-bounce delay-1500" />
-      </div>
+      {/* Şeffaf Siyah Overlay (Doku Netliği İçin) */}
+      <div className="absolute inset-0 bg-black/30 z-[1] pointer-events-none" />
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-20">
-        {/* Header / Title Section */}
+      {/* Navigation Header */}
+      <header className="relative z-50 flex items-center justify-between max-w-7xl w-full mx-auto shrink-0 h-12 pointer-events-auto">
+        <div className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-1">
+          <span>FITO</span>
+          <span className="h-2 w-2 rounded-full bg-[#D94A1D]" />
+        </div>
+
+        <button
+          onClick={() => setShowAuthModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold shadow-sm border border-zinc-700/80 backdrop-blur-md transition-all hover:border-[#D94A1D]/50 cursor-pointer"
+        >
+          <User className="w-3.5 h-3.5 text-[#D94A1D]" />
+          <span>GİRİŞ YAP</span>
+        </button>
+      </header>
+
+      {/* Main Content Wrapper */}
+      <div className="relative z-10 pointer-events-none flex flex-1 flex-col items-center justify-center my-auto w-full max-w-5xl mx-auto text-center overflow-hidden">
+        {/* Title & Description */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-          className="w-full max-w-5xl text-center mb-12"
+          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          className="w-full text-center shrink-0"
         >
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-700 text-sm font-medium border border-emerald-500/20 mb-6"
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D94A1D]/15 text-[#D94A1D] text-xs font-medium border border-[#D94A1D]/30 mb-3"
           >
             <span className="relative flex h-2 w-2">
               <motion.span
-                className="absolute inset-0 rounded-full bg-emerald-500"
+                className="absolute inset-0 rounded-full bg-[#D94A1D]"
                 animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
               />
-              <span className="relative z-10 h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="relative z-10 h-2 w-2 rounded-full bg-[#D94A1D]" />
             </span>
             AI Destekli Kişisel Koç
           </motion.span>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-            className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-slate-900 leading-tight mb-6"
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight mb-2 sm:mb-3 uppercase"
           >
             Hayalindeki Vücuda ve
             <br />
-            <span className="relative">
+            <span className="text-[#D94A1D]">
               Sağlıklı Yaşama Adım At
-              <span className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-400 to-amber-400 opacity-30 -z-10" />
             </span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-            className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed"
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="text-xs sm:text-base text-zinc-300 max-w-xl mx-auto leading-relaxed"
           >
             Yapay zeka destekli, sana özel antrenman ve beslenme planlarıyla hedeflerine ulaş.
             Bilim temelli, sürdürülebilir ve keyifli bir dönüşüm deneyimi.
           </motion.p>
         </motion.div>
 
-        {/* 3D Carousel Section */}
+        {/* 3D Carousel */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-          className="w-full max-w-6xl mb-16"
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="w-full max-w-5xl py-2 shrink-0 pointer-events-auto"
         >
-          <ThreeDPhotoCarousel />
+          <div className="max-h-[220px] sm:max-h-[280px] flex items-center justify-center overflow-hidden">
+            <ThreeDPhotoCarousel />
+          </div>
 
-          {/* Carousel hint */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.5 }}
-            className="text-center text-sm text-slate-500 mt-6 flex items-center justify-center gap-2"
+            transition={{ delay: 0.8, duration: 0.4 }}
+            className="text-center text-[11px] sm:text-xs text-zinc-400 mt-1 flex items-center justify-center gap-1.5"
           >
             <motion.span
-              animate={{ x: [-4, 4, -4] }}
+              animate={{ x: [-3, 3, -3] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="text-emerald-500"
+              className="text-[#D94A1D]"
             >
               ←
             </motion.span>
-            Sürükle veya tıkla keşfetmek için
+            Büyütmek için resimlere tıkla
             <motion.span
-              animate={{ x: [-4, 4, -4] }}
+              animate={{ x: [-3, 3, -3] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="text-emerald-500"
+              className="text-[#D94A1D]"
             >
               →
             </motion.span>
           </motion.p>
         </motion.div>
 
-        {/* CTA Button Section */}
+        {/* CTA Button & Badges */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-          className="w-full max-w-md"
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="w-full max-w-sm shrink-0 mt-1 pointer-events-auto"
         >
           <Link
             href="/onboarding"
-            className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 px-8 py-5 text-white text-lg font-semibold shadow-xl shadow-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/40 transition-all duration-300 overflow-hidden"
+            className="group relative flex w-full items-center justify-center gap-2 rounded-lg bg-[#D94A1D] hover:bg-[#B83E17] px-6 py-3.5 text-white text-sm sm:text-base font-bold shadow-lg shadow-[#D94A1D]/30 transition-all duration-300 overflow-hidden"
           >
-            {/* Glowing background effect */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            />
-            {/* Shimmer effect */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
-            />
-
             <span className="relative z-10 flex items-center gap-2">
               Ücretsiz Planımı Oluştur
-              <motion.div
-                className="relative flex h-6 w-6 items-center justify-center rounded-full bg-white/20 group-hover:bg-white/30 transition-colors"
-              >
-                <motion.span
-                  initial={{ x: 0 }}
-                  animate={{ x: 4 }}
-                  transition={{ delay: 0.3, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </motion.span>
-              </motion.div>
+              <div className="relative flex h-5 w-5 items-center justify-center rounded-full bg-white/20 group-hover:bg-white/30 transition-colors">
+                <ArrowRight className="h-3.5 w-3.5 text-white" />
+              </div>
             </span>
-
-            {/* Pulse ring */}
-            <motion.div
-              className="absolute inset-0 rounded-2xl border-2 border-emerald-400/50 pointer-events-none"
-              animate={{ scale: [1, 1.05], opacity: [0.6, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-            />
-            <motion.div
-              className="absolute inset-0 rounded-2xl border-2 border-emerald-300/30 pointer-events-none"
-              animate={{ scale: [1, 1.08], opacity: [0.4, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 1 }}
-            />
           </Link>
 
-          {/* Trust indicators */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-            className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+            className="mt-3 flex items-center justify-center gap-3 sm:gap-5 text-[11px] sm:text-xs text-zinc-400"
           >
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#D94A1D]" />
               Kredi kartı gerekmez
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#D94A1D]" />
               2 dakikada hazır
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#D94A1D]" />
               Bilim temelli
             </span>
           </motion.div>
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-400"
-      >
-        <span className="text-xs uppercase tracking-wider">Daha fazlası için</span>
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="h-6 w-6 rounded-full border-2 border-slate-300 flex items-center justify-center"
-        >
-          <motion.span
-            className="h-1.5 w-1.5 border-r-2 border-b-2 border-slate-400 rotate-45"
-          />
-        </motion.div>
-      </motion.div>
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={() => {
+          setShowAuthModal(false)
+          window.location.href = "/dashboard"
+        }}
+      />
     </main>
   )
 }
