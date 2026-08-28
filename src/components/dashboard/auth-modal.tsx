@@ -50,22 +50,6 @@ export function AuthModal({
     }
   }, [isOpen, initialMode])
 
-  // Yerel veri deposu yardımcıları
-  const getStoredUsers = () => {
-    try {
-      const users = localStorage.getItem("registered_users_db")
-      return users ? JSON.parse(users) : {}
-    } catch {
-      return {}
-    }
-  }
-
-  const saveUserToDb = (userEmail: string, userPass: string) => {
-    const users = getStoredUsers()
-    users[userEmail.toLowerCase()] = userPass
-    localStorage.setItem("registered_users_db", JSON.stringify(users))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const cleanEmail = email.trim().toLowerCase()
@@ -86,7 +70,8 @@ export function AuthModal({
     setErrorMessage("")
 
     try {
-      const response = await fetch("/api/auth", {
+      // Doğrudan backend API'ye (Neon veritabanına) istek atıyoruz
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -104,44 +89,8 @@ export function AuthModal({
         return
       }
 
-      const registeredUsers = getStoredUsers()
-
-      if (isSignUp) {
-        if (registeredUsers[cleanEmail]) {
-          setErrorMessage("Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.")
-          setStatus("error")
-          return
-        }
-
-        saveUserToDb(cleanEmail, password)
-
-        // Kayıt olduktan sonra otomatik oturum aç ve custom_user'ı kaydet
-        const loggedUser = data.user || { id: "user_" + Date.now(), email: cleanEmail }
-        localStorage.setItem("custom_user", JSON.stringify(loggedUser))
-        window.dispatchEvent(new Event("auth-change"))
-
-        setStatus("success")
-        setTimeout(() => {
-          onClose()
-          onAuthSuccess()
-          setStatus("idle")
-        }, 500)
-        return
-      }
-
-      if (!registeredUsers[cleanEmail]) {
-        setErrorMessage("Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.")
-        setStatus("error")
-        return
-      }
-
-      if (registeredUsers[cleanEmail] !== password) {
-        setErrorMessage("E-posta adresi veya şifre yanlış.")
-        setStatus("error")
-        return
-      }
-
-      const loggedUser = data.user || { id: "user_1", email: cleanEmail }
+      // Başarılı kayıt veya giriş durumunda kullanıcıyı localStorage'a kaydet ve oturumu tetikle
+      const loggedUser = data.user || { id: "user_" + Date.now(), email: cleanEmail }
       localStorage.setItem("custom_user", JSON.stringify(loggedUser))
       
       // Tüm uygulamaya oturumun değiştiğini duyur
@@ -158,13 +107,6 @@ export function AuthModal({
       setErrorMessage(err.message || "Bir hata oluştu. Lütfen tekrar deneyin.")
       setStatus("error")
     }
-  }
-
-  const handleSwitchToLogin = () => {
-    setIsSignUp(false)
-    setStatus("idle")
-    setErrorMessage("")
-    setTimeout(() => emailRef.current?.focus(), 100)
   }
 
   return (
@@ -195,25 +137,12 @@ export function AuthModal({
               </button>
 
               <AnimatePresence mode="wait">
-                {status === "signup-success" ? (
-                  <div key="signup-success" className="text-center py-6">
-                    <CheckCircle2 className="h-12 w-12 text-amber-500 mx-auto mb-3" />
-                    <h3 className="text-lg font-bold text-white mb-1">Hesabınız Oluşturuldu!</h3>
-                    <p className="text-sm text-slate-400 mb-6">Kayıt olduğunuz bilgilerle hemen giriş yapabilirsiniz.</p>
-                    <motion.button
-                      type="button"
-                      onClick={handleSwitchToLogin}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full h-12 rounded-xl bg-amber-500 text-slate-950 font-semibold hover:bg-amber-400 transition-colors cursor-pointer"
-                    >
-                      Giriş Yap Sekmesine Geç
-                    </motion.button>
-                  </div>
-                ) : status === "success" ? (
+                {status === "success" ? (
                   <div key="success" className="text-center py-8">
                     <CheckCircle2 className="h-16 w-16 text-amber-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-white">Giriş Başarılı!</h3>
+                    <h3 className="text-xl font-bold text-white">
+                      {isSignUp ? "Kayıt Başarılı!" : "Giriş Başarılı!"}
+                    </h3>
                   </div>
                 ) : (
                   <form key="form" onSubmit={handleSubmit}>
@@ -223,7 +152,6 @@ export function AuthModal({
                       </h2>
                     </div>
 
-                    {/* Sadece showTabs={true} geçilirse Giriş Yap / Kayıt Ol sekmelerini gösterir */}
                     {showTabs && (
                       <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-2xl border border-white/5">
                         <button
@@ -265,7 +193,7 @@ export function AuthModal({
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full h-12 pl-12 pr-4 rounded-xl border border-white/10 text-white placeholder:text-slate-505 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          className="w-full h-12 pl-12 pr-4 rounded-xl border border-white/10 text-white placeholder:text-slate-500 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
                           placeholder="E-posta"
                         />
                       </div>
