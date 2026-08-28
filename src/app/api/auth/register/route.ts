@@ -2,16 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
-function getUserModel() {
-  if (!prisma) return null
-  // Doğrudan tüm property'ler içinde findUnique metoduna sahip olan modeli bulur
-  const modelKey = Object.keys(prisma).find((key) => {
-    const val = (prisma as any)[key]
-    return val && typeof val.findUnique === "function" && !key.startsWith("_")
-  })
-  return modelKey ? (prisma as any)[modelKey] : (prisma as any).user || (prisma as any).User || (prisma as any).users
-}
-
 function getUserWithoutPassword(user: any) {
   const { password_hash, ...userWithoutPassword } = user
   return userWithoutPassword
@@ -21,10 +11,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { action, email, password, userId, onboardingData } = body
-    const userModel = getUserModel()
 
-    if (!userModel) {
-      return NextResponse.json({ error: "Veritabanı modeli bulunamadı" }, { status: 500 })
+    // Doğrudan prisma.user veya prisma.User kullanıyoruz
+    const dbUser = (prisma as any).user || (prisma as any).User
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "Prisma user modeli yüklenemedi." }, { status: 500 })
     }
 
     if (action === "signup") {
@@ -42,7 +34,7 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = email.toLowerCase().trim()
 
-      const existingUser = await userModel.findUnique({
+      const existingUser = await dbUser.findUnique({
         where: { email: normalizedEmail },
       })
 
@@ -52,7 +44,7 @@ export async function POST(request: NextRequest) {
 
       const passwordHash = await bcrypt.hash(password, 12)
 
-      const newUser = await userModel.create({
+      const newUser = await dbUser.create({
         data: {
           email: normalizedEmail,
           password_hash: passwordHash,
@@ -80,7 +72,7 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = email.toLowerCase().trim()
 
-      const user = await userModel.findUnique({
+      const user = await dbUser.findUnique({
         where: { email: normalizedEmail },
       })
 
@@ -101,7 +93,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Kullanıcı ID gerekli" }, { status: 400 })
       }
 
-      const user = await userModel.findUnique({
+      const user = await dbUser.findUnique({
         where: { id: userId },
       })
 
@@ -115,6 +107,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Geçersiz işlem" }, { status: 400 })
   } catch (err: any) {
     console.error("Auth API error:", err)
-    return NextResponse.json({ error: "Sunucu hatası" }, { status: 500 })
+    return NextResponse.json({ error: "Sunucu hatası: " + (err.message || "Bilinmeyen hata") }, { status: 500 })
   }
 }
