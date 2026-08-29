@@ -3,33 +3,14 @@
 import { useState, useEffect } from "react"
 import { motion } from "motion/react"
 import Link from "next/link"
-import { ArrowRight, LogIn } from "lucide-react"
+import { ArrowRight, User } from "lucide-react"
 import { ThreeDPhotoCarousel } from "@/components/ui/3d-carousel"
 import { AuthModal } from "@/components/dashboard/auth-modal"
 
 export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
 
-  useEffect(() => {
-    const checkUser = () => {
-      try {
-        const savedUser = localStorage.getItem("custom_user")
-        if (savedUser) {
-          setCurrentUser(JSON.parse(savedUser))
-        } else {
-          setCurrentUser(null)
-        }
-      } catch {
-        setCurrentUser(null)
-      }
-    }
-
-    checkUser()
-    window.addEventListener("auth-change", checkUser)
-    return () => window.removeEventListener("auth-change", checkUser)
-  }, [])
-
+  // Spline Web Component Script'ini yükleme
   useEffect(() => {
     const script = document.createElement("script")
     script.src = "https://unpkg.com/@splinetool/viewer@1.9.72/build/spline-viewer.js"
@@ -51,7 +32,7 @@ export default function HomePage() {
         }}
       />
 
-      {/* 3D Spline Arka Planı */}
+      {/* 3D Spline Arka Planı (Kareli Doku Belirgin & Siyah Tonlama) */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         {/* @ts-ignore - spline-viewer custom element */}
         <spline-viewer
@@ -59,12 +40,12 @@ export default function HomePage() {
           style={{
             width: "100%",
             height: "100%",
-            filter: "grayscale(100%) brightness(0.65) contrast(1.2)",
+            filter: "grayscale(100%) brightness(0.65) contrast(1.2)", // Yeşil ton sıfırlandı, 3D küpler görünür kılındı
           }}
         />
       </div>
 
-      {/* Şeffaf Siyah Overlay */}
+      {/* Şeffaf Siyah Overlay (Doku Netliği İçin) */}
       <div className="absolute inset-0 bg-black/30 z-[1] pointer-events-none" />
 
       {/* Navigation Header */}
@@ -74,18 +55,18 @@ export default function HomePage() {
           <span className="h-2 w-2 rounded-full bg-[#D94A1D]" />
         </div>
 
-        {/* Giriş Yap Butonu (Her zaman görünür) */}
         <button
           onClick={() => setShowAuthModal(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/10 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold shadow-sm border border-zinc-700/80 backdrop-blur-md transition-all hover:border-[#D94A1D]/50 cursor-pointer"
         >
-          <LogIn className="w-3.5 h-3.5" />
-          <span>Giriş Yap</span>
+          <User className="w-3.5 h-3.5 text-[#D94A1D]" />
+          <span>GİRİŞ YAP</span>
         </button>
       </header>
 
       {/* Main Content Wrapper */}
       <div className="relative z-10 pointer-events-none flex flex-1 flex-col items-center justify-center my-auto w-full max-w-5xl mx-auto text-center overflow-hidden">
+        {/* Title & Description */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -215,7 +196,7 @@ export default function HomePage() {
         onClose={() => setShowAuthModal(false)}
         onAuthSuccess={() => {
           setShowAuthModal(false)
-          window.location.reload()
+          window.location.href = "/dashboard"
         }}
       />
     </main>
