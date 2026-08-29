@@ -15,7 +15,12 @@ interface SignInBody {
   password: string
 }
 
-type AuthBody = SignUpBody | SignInBody
+interface VerifyBody {
+  action: "verify"
+  userId: string
+}
+
+type AuthBody = SignUpBody | SignInBody | VerifyBody
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
@@ -28,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // 1. KAYIT OLMA (SignUp)
     if (action === "signup") {
-      const { email, password, fullName } = body
+      const { email, password, fullName } = body as SignUpBody
 
       if (!email || !password) {
         return NextResponse.json({ error: "E-posta ve şifre gerekli." }, { status: 400 })
@@ -75,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // 2. GİRİŞ YAPMA (SignIn)
     if (action === "signin") {
-      const { email, password } = body
+      const { email, password } = body as SignInBody
 
       if (!email || !password) {
         return NextResponse.json({ error: "E-posta ve şifre gerekli." }, { status: 400 })
@@ -99,6 +104,32 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         message: "Giriş başarılı.",
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          createdAt: user.createdAt,
+        },
+      })
+    }
+
+    // 3. DOĞRULAMA (Verify - Sayfa yenilendiğinde ve auth değişiminde tetiklenir)
+    if (action === "verify") {
+      const { userId } = body as VerifyBody
+
+      if (!userId) {
+        return NextResponse.json({ error: "User ID gerekli." }, { status: 400 })
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      })
+
+      if (!user) {
+        return NextResponse.json({ error: "Kullanıcı bulunamadı.", user: null }, { status: 404 })
+      }
+
+      return NextResponse.json({
         user: {
           id: user.id,
           email: user.email,
