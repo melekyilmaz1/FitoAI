@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "motion/react"
 import Link from "next/link"
-import { ArrowRight, LayoutDashboard } from "lucide-react"
+import { ArrowRight, LogIn } from "lucide-react"
 import { ThreeDPhotoCarousel } from "@/components/ui/3d-carousel"
 import { AuthModal } from "@/components/dashboard/auth-modal"
 
@@ -11,7 +11,6 @@ export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
 
-  // Sayfa yüklendiğinde ve oturum değiştiğinde localStorage'dan kullanıcıyı kontrol et
   useEffect(() => {
     const checkUser = () => {
       try {
@@ -27,13 +26,10 @@ export default function HomePage() {
     }
 
     checkUser()
-
-    // Oturum değişikliklerini dinle
     window.addEventListener("auth-change", checkUser)
     return () => window.removeEventListener("auth-change", checkUser)
   }, [])
 
-  // Spline Web Component Script'ini yükleme
   useEffect(() => {
     const script = document.createElement("script")
     script.src = "https://unpkg.com/@splinetool/viewer@1.9.72/build/spline-viewer.js"
@@ -78,15 +74,16 @@ export default function HomePage() {
           <span className="h-2 w-2 rounded-full bg-[#D94A1D]" />
         </div>
 
-        {currentUser ? (
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#D94A1D] hover:bg-[#B83E17] text-white text-xs sm:text-sm font-semibold shadow-sm transition-all cursor-pointer"
+        {/* Sadece Giriş Yap Butonu (Kullanıcı giriş yapmamışsa görünür) */}
+        {!currentUser && (
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/10 transition-all cursor-pointer"
           >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>DASHBOARD'A GİT</span>
-          </Link>
-        ) : null}
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Giriş Yap</span>
+          </button>
+        )}
       </header>
 
       {/* Main Content Wrapper */}
