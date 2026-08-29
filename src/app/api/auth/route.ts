@@ -1,55 +1,39 @@
 import { NextRequest, NextResponse } from "next/server"
-import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
 
-interface SignUpBody {
-  action: "signup"
-  email: string
-  password: string
-  fullName?: string
-}
-
-interface SignInBody {
-  action: "signin"
-  email: string
-  password: string
-}
-
-interface VerifyBody {
-  action: "verify"
-  userId: string
-}
-
-type AuthBody = SignUpBody | SignInBody | VerifyBody
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase()
+function getUserWithoutPassword(user: any) {
+  const { password, ...userWithoutPassword } = user
+  return userWithoutPassword
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: AuthBody = await request.json()
-    const { action } = body
+    const body = await request.json()
+    const { action, email, password, userId, onboardingData } = body
 
-    // 1. KAYIT OLMA (SignUp)
+    const dbUser = prisma.user || (prisma as any).User || (prisma as any).users
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "Veritabanı modeli (User) bulunamadı." }, { status: 500 })
+    }
+
     if (action === "signup") {
-      const { email, password, fullName } = body as SignUpBody
-
       if (!email || !password) {
-        return NextResponse.json({ error: "E-posta ve şifre gerekli." }, { status: 400 })
+        return NextResponse.json({ error: "E-posta ve şifre gerekli" }, { status: 400 })
       }
 
       if (!email.includes("@")) {
-        return NextResponse.json({ error: "Geçerli bir e-posta adresi girin." }, { status: 400 })
+        return NextResponse.json({ error: "Geçerli bir e-posta adresi girin" }, { status: 400 })
       }
-
-      const normalizedEmail = normalizeEmail(email)
 
       if (password.length < 6) {
-        return NextResponse.json({ error: "Şifre en az 6 karakter olmalı." }, { status: 400 })
+        return NextResponse.json({ error: "Şifre en az 6 karakter olmalı" }, { status: 400 })
       }
 
-      const existingUser = await prisma.user.findUnique({
+      const normalizedEmail = email.toLowerCase().trim()
+
+      const existingUser = await dbUser.findUnique({
         where: { email: normalizedEmail },
       })
 
@@ -59,89 +43,62 @@ export async function POST(request: NextRequest) {
 
       const hashedPassword = await bcrypt.hash(password, 12)
 
-      const newUser = await prisma.user.create({
+      const newUser = await dbUser.create({
         data: {
           email: normalizedEmail,
           password: hashedPassword,
-          name: fullName || null,
+          name: onboardingData?.full_name || onboardingData?.fullName || null,
         },
       })
 
       return NextResponse.json({
-        message: "Kayıt başarılı.",
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          name: newUser.name,
-          createdAt: newUser.createdAt,
-        },
+        message: "Kayıt başarılı. Giriş yapabilirsiniz.",
+        user: getUserWithoutPassword(newUser),
       })
     }
 
-    // 2. GİRİŞ YAPMA (SignIn)
     if (action === "signin") {
-      const { email, password } = body as SignInBody
-
       if (!email || !password) {
-        return NextResponse.json({ error: "E-posta ve şifre gerekli." }, { status: 400 })
+        return NextResponse.json({ error: "E-posta ve şifre gerekli" }, { status: 400 })
       }
 
-      const normalizedEmail = normalizeEmail(email)
+      const normalizedEmail = email.toLowerCase().trim()
 
-      const user = await prisma.user.findUnique({
+      const user = await dbUser.findUnique({
         where: { email: normalizedEmail },
       })
 
       if (!user) {
-        return NextResponse.json({ error: "E-posta adresi veya şifre yanlış." }, { status: 401 })
+        return NextResponse.json({ error: "Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı." }, { status: 404 })
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password)
-
       if (!isPasswordValid) {
-        return NextResponse.json({ error: "E-posta adresi veya şifre yanlış." }, { status: 401 })
+        return NextResponse.json({ error: "Hatalı şifre." }, { status: 400 })
       }
 
-      return NextResponse.json({
-        message: "Giriş başarılı.",
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          createdAt: user.createdAt,
-        },
-      })
+      return NextResponse.json({ user: getUserWithoutPassword(user) })
     }
 
-    // 3. DOĞRULAMA (Verify - Sayfa yenilendiğinde ve auth değişiminde tetiklenir)
     if (action === "verify") {
-      const { userId } = body as VerifyBody
-
       if (!userId) {
-        return NextResponse.json({ error: "User ID gerekli." }, { status: 400 })
+        return NextResponse.json({ error: "Kullanıcı ID gerekli" }, { status: 400 })
       }
 
-      const user = await prisma.user.findUnique({
+      const user = await dbUser.findUnique({
         where: { id: userId },
       })
 
       if (!user) {
-        return NextResponse.json({ error: "Kullanıcı bulunamadı.", user: null }, { status: 404 })
+        return NextResponse.json({ error: "Kullanıcı bulunamadı" }, { status: 404 })
       }
 
-      return NextResponse.json({
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          createdAt: user.createdAt,
-        },
-      })
+      return NextResponse.json({ user: getUserWithoutPassword(user) })
     }
 
-    return NextResponse.json({ error: "Geçersiz işlem." }, { status: 400 })
+    return NextResponse.json({ error: "Geçersiz işlem" }, { status: 400 })
   } catch (err: any) {
     console.error("Auth API error:", err)
-    return NextResponse.json({ error: err?.message || "Sunucu hatası oluştu." }, { status: 500 })
+    return NextResponse.json({ error: "Sunucu hatası: " + (err.message || "Bilinmeyen hata") }, { status: 500 })
   }
 }
