@@ -3,8 +3,36 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
 function getUserWithoutPassword(user: any) {
+  if (!user) return null
   const { password, ...userWithoutPassword } = user
   return userWithoutPassword
+}
+
+// Güvenli kullanıcı bulma (Model veya Raw SQL)
+async function findUserByEmail(email: string) {
+  try {
+    const userModel = prisma.user || (prisma as any).User || (prisma as any).users
+    if (userModel?.findUnique) {
+      const u = await userModel.findUnique({ where: { email } })
+      if (u) return u
+    }
+  } catch (e) {
+    console.warn("Prisma model search fallback to raw sql:", e)
+  }
+
+  // Raw SQL ile doğrudan Neon PostgreSQL sorgusu
+  try {
+    const rawUsers: any[] = await prisma.$queryRaw`
+      SELECT * FROM "User" WHERE LOWER(email) = LOWER(${email}) LIMIT 1
+    `
+    if (rawUsers && rawUsers.length > 0) {
+      return rawUsers[0]
+    }
+  } catch (e) {
+    console.error("Raw SQL error:", e)
+  }
+
+  return null
 }
 
 export async function POST(request: NextRequest) {
@@ -12,44 +40,38 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, email, password, userId, onboardingData } = body
 
-    const dbUser = prisma.user || (prisma as any).User || (prisma as any).users
-
-    if (!dbUser) {
-      return NextResponse.json({ error: "Veritabanı modeli (User) bulunamadı." }, { status: 500 })
-    }
-
     if (action === "signup") {
       if (!email || !password) {
         return NextResponse.json({ error: "E-posta ve şifre gerekli" }, { status: 400 })
       }
 
-      if (!email.includes("@")) {
-        return NextResponse.json({ error: "Geçerli bir e-posta adresi girin" }, { status: 400 })
-      }
-
-      if (password.length < 6) {
-        return NextResponse.json({ error: "Şifre en az 6 karakter olmalı" }, { status: 400 })
-      }
-
       const normalizedEmail = email.toLowerCase().trim()
-
-      const existingUser = await dbUser.findUnique({
-        where: { email: normalizedEmail },
-      })
+      const existingUser = await findUserByEmail(normalizedEmail)
 
       if (existingUser) {
         return NextResponse.json({ error: "Bu e-posta adresi zaten kayıtlı." }, { status: 400 })
       }
 
       const hashedPassword = await bcrypt.hash(password, 12)
+      const userModel = prisma.user || (prisma as any).User || (prisma as any).users
 
-      const newUser = await dbUser.create({
-        data: {
-          email: normalizedEmail,
-          password: hashedPassword,
-          name: onboardingData?.full_name || onboardingData?.fullName || null,
-        },
-      })
+      let newUser
+      if (userModel?.create) {
+        newUser = await userModel.create({
+          data: {
+            email: normalizedEmail,
+            password: hashedPassword,
+            name: onboardingData?.full_name || onboardingData?.fullName || null,
+          },
+        })
+      } else {
+        const id = crypto.randomUUID()
+        await prisma.$executeRaw`
+          INSERT INTO "User" ("id", "email", "password", "name", "createdAt")
+          VALUES (${id}, ${normalizedEmail}, ${hashedPassword}, ${onboardingData?.fullName || null}, NOW())
+        `
+        newUser = { id, email: normalizedEmail, name: onboardingData?.fullName || null }
+      }
 
       return NextResponse.json({
         message: "Kayıt başarılı. Giriş yapabilirsiniz.",
@@ -63,10 +85,7 @@ export async function POST(request: NextRequest) {
       }
 
       const normalizedEmail = email.toLowerCase().trim()
-
-      const user = await dbUser.findUnique({
-        where: { email: normalizedEmail },
-      })
+      const user = await findUserByEmail(normalizedEmail)
 
       if (!user) {
         return NextResponse.json({ error: "Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı." }, { status: 404 })
@@ -85,9 +104,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Kullanıcı ID gerekli" }, { status: 400 })
       }
 
-      const user = await dbUser.findUnique({
-        where: { id: userId },
-      })
+      let user: any = null
+      try {
+        const userModel = prisma.user || (prisma as any).User || (prisma as any).users
+        if (userModel?.findUnique) {
+          user = await userModel.findUnique({ where: { id: userId } })
+        }
+      } catch {}
+
+      if (!user) {
+        const rawUsers: any[] = await prisma.$queryRaw`
+          SELECT * FROM "User" WHERE id = ${userId} LIMIT 1
+        `
+        if (rawUsers && rawUsers.length > 0) user = rawUsers[0]
+      }
 
       if (!user) {
         return NextResponse.json({ error: "Kullanıcı bulunamadı" }, { status: 404 })
