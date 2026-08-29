@@ -50,22 +50,6 @@ export function AuthModal({
     }
   }, [isOpen, initialMode])
 
-  // Yerel veri deposu yardımcıları
-  const getStoredUsers = () => {
-    try {
-      const users = localStorage.getItem("registered_users_db")
-      return users ? JSON.parse(users) : {}
-    } catch {
-      return {}
-    }
-  }
-
-  const saveUserToDb = (userEmail: string, userPass: string) => {
-    const users = getStoredUsers()
-    users[userEmail.toLowerCase()] = userPass
-    localStorage.setItem("registered_users_db", JSON.stringify(users))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const cleanEmail = email.trim().toLowerCase()
@@ -104,21 +88,12 @@ export function AuthModal({
         return
       }
 
-      const registeredUsers = getStoredUsers()
-
       if (isSignUp) {
-        if (registeredUsers[cleanEmail]) {
-          setErrorMessage("Bu e-posta adresi zaten kayıtlı. Lütfen giriş yapın.")
-          setStatus("error")
-          return
+        // Kayıt başarılı olduğunda kullanıcı oturumunu kaydet
+        if (data.user) {
+          localStorage.setItem("custom_user", JSON.stringify(data.user))
+          window.dispatchEvent(new Event("auth-change"))
         }
-
-        saveUserToDb(cleanEmail, password)
-
-        // Kayıt olduktan sonra otomatik oturum aç ve custom_user'ı kaydet
-        const loggedUser = data.user || { id: "user_" + Date.now(), email: cleanEmail }
-        localStorage.setItem("custom_user", JSON.stringify(loggedUser))
-        window.dispatchEvent(new Event("auth-change"))
 
         setStatus("success")
         setTimeout(() => {
@@ -129,30 +104,21 @@ export function AuthModal({
         return
       }
 
-      if (!registeredUsers[cleanEmail]) {
-        setErrorMessage("Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.")
+      // Giriş Başarılı Durumu (Neon Doğruladı)
+      if (data.user) {
+        localStorage.setItem("custom_user", JSON.stringify(data.user))
+        window.dispatchEvent(new Event("auth-change"))
+
+        setStatus("success")
+        setTimeout(() => {
+          onClose()
+          onAuthSuccess()
+          setStatus("idle")
+        }, 500)
+      } else {
+        setErrorMessage("Kullanıcı bilgisi alınamadı.")
         setStatus("error")
-        return
       }
-
-      if (registeredUsers[cleanEmail] !== password) {
-        setErrorMessage("E-posta adresi veya şifre yanlış.")
-        setStatus("error")
-        return
-      }
-
-      const loggedUser = data.user || { id: "user_1", email: cleanEmail }
-      localStorage.setItem("custom_user", JSON.stringify(loggedUser))
-      
-      // Tüm uygulamaya oturumun değiştiğini duyur
-      window.dispatchEvent(new Event("auth-change"))
-
-      setStatus("success")
-      setTimeout(() => {
-        onClose()
-        onAuthSuccess()
-        setStatus("idle")
-      }, 500)
 
     } catch (err: any) {
       setErrorMessage(err.message || "Bir hata oluştu. Lütfen tekrar deneyin.")
@@ -223,7 +189,6 @@ export function AuthModal({
                       </h2>
                     </div>
 
-                    {/* Sadece showTabs={true} geçilirse Giriş Yap / Kayıt Ol sekmelerini gösterir */}
                     {showTabs && (
                       <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-2xl border border-white/5">
                         <button
@@ -265,7 +230,7 @@ export function AuthModal({
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full h-12 pl-12 pr-4 rounded-xl border border-white/10 text-white placeholder:text-slate-505 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          className="w-full h-12 pl-12 pr-4 rounded-xl border border-white/10 text-white placeholder:text-slate-500 bg-white/5 focus:outline-none focus:ring-2 focus:ring-amber-500"
                           placeholder="E-posta"
                         />
                       </div>
