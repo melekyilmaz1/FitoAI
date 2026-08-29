@@ -74,16 +74,14 @@ export default function HomePage() {
           <span className="h-2 w-2 rounded-full bg-[#D94A1D]" />
         </div>
 
-        {/* Sadece Giriş Yap Butonu (Kullanıcı giriş yapmamışsa görünür) */}
-        {!currentUser && (
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/10 transition-all cursor-pointer"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Giriş Yap</span>
-          </button>
-        )}
+        {/* Giriş Yap Butonu (Her zaman görünür) */}
+        <button
+          onClick={() => setShowAuthModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/10 transition-all cursor-pointer"
+        >
+          <LogIn className="w-3.5 h-3.5" />
+          <span>Giriş Yap</span>
+        </button>
       </header>
 
       {/* Main Content Wrapper */}

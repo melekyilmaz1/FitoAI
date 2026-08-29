@@ -100,6 +100,8 @@ export function AuthModal({
       setTimeout(() => {
         onClose()
         onAuthSuccess()
+        // Başarılı giriş/kayıt sonrası doğrudan giriş sayfasına yönlendir
+        window.location.href = "/login"
         setStatus("idle")
       }, 500)
 
