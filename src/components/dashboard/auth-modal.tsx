@@ -70,8 +70,7 @@ export function AuthModal({
     setErrorMessage("")
 
     try {
-      // Doğrudan backend API'ye (Neon veritabanına) istek atıyoruz
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -89,19 +88,16 @@ export function AuthModal({
         return
       }
 
-      // Başarılı kayıt veya giriş durumunda kullanıcıyı localStorage'a kaydet ve oturumu tetikle
       const loggedUser = data.user || { id: "user_" + Date.now(), email: cleanEmail }
       localStorage.setItem("custom_user", JSON.stringify(loggedUser))
       
-      // Tüm uygulamaya oturumun değiştiğini duyur
       window.dispatchEvent(new Event("auth-change"))
 
       setStatus("success")
       setTimeout(() => {
         onClose()
         onAuthSuccess()
-        // Başarılı giriş/kayıt sonrası doğrudan giriş sayfasına yönlendir
-        window.location.href = "/login"
+        window.location.href = "/dashboard"
         setStatus("idle")
       }, 500)
 
