@@ -69,16 +69,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await response.json()
         if (data.user) {
           setUser(data.user)
+          // Güncel kullanıcı bilgisini localStorage'da da tazele
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user))
         } else {
           localStorage.removeItem(STORAGE_KEY)
           setUser(null)
         }
       } else {
-        // API offline veya erişilemiyorsa en azından cached user verisini tut
+        // API yanıt vermezse cache'deki kullanıcıyı kullan
         setUser(parsedUser)
       }
     } catch (err) {
       console.error("Auth verify error:", err)
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored))
+        } catch {
+          setUser(null)
+        }
+      }
     } finally {
       setLoading(false)
     }
