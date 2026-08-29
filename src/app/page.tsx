@@ -215,7 +215,7 @@ export default function HomePage() {
         onClose={() => setShowAuthModal(false)}
         onAuthSuccess={() => {
           setShowAuthModal(false)
-          window.location.href = "/dashboard"
+          window.location.reload()
         }}
       />
     </main>
