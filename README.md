@@ -4,7 +4,7 @@
 
 **Modern web teknolojileri ve akıcı animasyonlarla güçlendirilmiş, akıllı yaşam ve beslenme asistanı.**
 
-[🌐 Canlı Önizleme (Live Demo)](https://fityol-ai.vercel.app) • [✨ Özellikler](#-özellikler) • [🛠️ Teknolojiler](#️-kullanılan-teknolojiler)
+[🚀 Fito'yu Canlı Dene](https://fityol-ai.vercel.app) • [✨ Özellikler](#-özellikler) • [🛠️ Teknolojiler](#️-kullanılan-teknolojiler)
 
 </div>
 
