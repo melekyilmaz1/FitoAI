@@ -1,3 +1,47 @@
+<div align="center">
+
+# 🍏 Fito - AI Destekli Kişisel Fitness ve Beslenme Koçu
+
+**Modern web teknolojileri ve akıcı animasyonlarla güçlendirilmiş, akıllı yaşam ve beslenme asistanı.**
+
+[🌐 Canlı Önizleme (Live Demo)](https://fityol-ai.vercel.app) • [✨ Özellikler](#-özellikler) • [🛠️ Teknolojiler](#️-kullanılan-teknolojiler)
+
+</div>
+
+---
+
+## 🌟 Proje Hakkında
+
+**Fito**, kullanıcıların günlük kalori, protein, karbonhidrat ve yağ hedeflerini zahmetsizce takip etmelerini sağlayan, yapay zeka destekli yenilikçi bir web uygulamasıdır. Standart fitness uygulamalarının aksine; kusursuz kullanıcı deneyimi (UX), karanlık mod odaklı şık tasarımı ve **Motion (Framer Motion)** ile hayat bulan akıcı mikro-etkileşim animasyonlarıyla öne çıkar.
+
+---
+
+## ✨ Öne Çıkan Özellikler & Deneyim
+
+* **AI Destekli Koçluk:** Kişiye özel kalori ve makro besin önerileri sunan akıllı koçluk paneli.
+* **Akıcı ve Modern Arayüz Animasyonları:** Motion kütüphanesiyle tasarlanmış pürüzsüz geçişler, modal açılışları ve dinamik durum değişimleri.
+* **Kapsamlı Besin & Kalori Takibi:** Günlük enerji dengesini anlık olarak görselleştiren interaktif göstergeler.
+* **Güvenli Kimlik Doğrulama:** Next.js API Route ve güvenli şifreleme altyapısıyla desteklenen modern kayıt ve oturum yönetimi.
+* **Responsive (Mobil Uyumlu) Tasarım:** Mobil cihazlarda kusursuz çalışan, uygulama hissiyatı veren özel alt navigasyon ve arayüz yerleşimi.
+
+---
+
+## 🛠️ Kullanılan Teknolojiler
+
+Bu proje, endüstri standardı modern full-stack teknolojileriyle geliştirilmiştir:
+
+* **Frontend:** Next.js (App Router), React, TypeScript, Tailwind CSS
+* **Animasyonlar:** Motion (Framer Motion)
+* **İkonlar & Görselleştirme:** Lucide React
+* **Backend & API:** Next.js Route Handlers, bcryptjs
+* **Veritabanı & ORM:** PostgreSQL (Neon), Prisma ORM
+* **Deployment:** Vercel
+
+---
+
+
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
