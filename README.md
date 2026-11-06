@@ -35,7 +35,7 @@ Bu proje, endüstri standardı modern full-stack teknolojileriyle geliştirilmi�
 * **İkonlar & Görselleştirme:** Lucide React
 * **Backend & API:** Next.js Route Handlers, bcryptjs
 * **Veritabanı & ORM:** PostgreSQL (Neon), Prisma ORM
-* **Deployment:** Vercel
+* **Deployment:** Render
 
 ---
 
